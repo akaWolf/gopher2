@@ -1,6 +1,7 @@
 # About
 
 This is repository with the sources of stage1 and stage2 bootloaders and host tools which can be used to flash Gopher 2 (and similar) boards.
+Forked from [GCW](https://github.com/gcwnow/ingenic-boot/).
 
 # Preparations
 
