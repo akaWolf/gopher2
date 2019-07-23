@@ -6,6 +6,7 @@ Forked from [GCW](https://github.com/gcwnow/ingenic-boot/).
 # Preparations
 
 You need host gcc toolchain and `mipsel-linux-` one at your PATH.
+Note: you can download prebuilded bootloaders from releases.
 
 # Building
 
