@@ -236,12 +236,6 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 		if (!timeout)
 			return -1;
 
-		// workaround for a strange bug
-		wait = 0xff;
-		while (wait--)
-		{
-		}
-
 		/* Write data to TXFIFO */
 		cnt = 128; // 128 words = 512 bytes
 		while (cnt) {
