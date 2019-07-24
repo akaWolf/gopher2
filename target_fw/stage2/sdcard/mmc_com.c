@@ -229,7 +229,7 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 				break;
 			}
 			
-			wait = 336;
+			wait = 0xfff;
 			while (wait--)
 				;
 		}
