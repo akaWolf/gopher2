@@ -135,7 +135,7 @@ int sd_card_program(struct ingenic_dev *ingenic_dev, unsigned int addr,
 		download_times = block_nums / SD_MAX_BLOCK_NUM;
 	}
 	printf(" last_download_block_num %d\n", last_download_block_num);
-	printf(" download_times %d : ", download_times);
+	printf(" download_times %d\n", download_times);
 	fflush(stdout);
 
 	fd = open(file_path, O_RDONLY);
@@ -260,7 +260,7 @@ int sd_card_program(struct ingenic_dev *ingenic_dev, unsigned int addr,
 			}
 		}
 
-		printf("#");
+		printf("\r progress: %3.1f%%", (i + 1) * 100. / download_times);
 		fflush(stdout);
 	}
 	printf("\n");
