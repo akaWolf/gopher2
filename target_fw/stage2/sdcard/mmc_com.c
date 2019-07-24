@@ -215,9 +215,8 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 	else
 		resp = mmc_cmd(25, src * 512, 0x19 | (BUS_WIDTH << 9), MSC_CMDAT_RESPONSE_R1);
 	nob = num / 512;
-	timeout = 0x3ffffff;
 	for (i = 0; i < nob; i++) { // cycle per pages of 512 bytes
-		timeout = 0x3FFFFFF;
+		timeout = 0x3FF;
 		while (timeout) {
 			timeout--;
 			stat = REG_MSC_STAT;
@@ -229,7 +228,7 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 				break;
 			}
 			
-			wait = 0xfff;
+			wait = 0xffff;
 			while (wait--)
 				;
 		}
@@ -241,7 +240,7 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 		while (cnt) {
 			// we need to wait for MSC_IREG_TXFIFO_WR_REQ bit
 			// set before start new write to FIFO
-			timeout = 0x3FFFFFF;
+			timeout = 0x3FF;
 			while (timeout)
 			{
 				timeout--;
@@ -266,6 +265,7 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 			}
 		}
 	}
+	serial_puts("    ");
 #if 0	
 	while (!(REG_MSC_IREG & MSC_IREG_DATA_TRAN_DONE)) ;
 	REG_MSC_IREG = MSC_IREG_DATA_TRAN_DONE;	/* clear status */
