@@ -202,8 +202,9 @@ static int mmc_block_readm(u32 src, u32 num, u8 *dst)
 static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 {
 	u8 *resp;
-	u32 stat, timeout, data, cnt, wait, nob, i, j;
+	u32 stat, timeout, data, cnt, nob, i, j;
 	u32 *wbuf = (u32 *)dst;
+	volatile u32 wait;
 
 	resp = mmc_cmd(16, 0x200, 0x1, MSC_CMDAT_RESPONSE_R1);
 	REG_MSC_BLKLEN = 0x200;
@@ -235,8 +236,13 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 		if (!timeout)
 			return -1;
 
+		// workaround for a strange bug
+		wait = 0xff;
+		while (wait--)
+		{
+		}
+
 		/* Write data to TXFIFO */
-		REG_MSC_IMASK = ~MSC_IMASK_TXFIFO_WR_REQ;
 		cnt = 128; // 128 words = 512 bytes
 		while (cnt) {
 			// we need to wait for MSC_IREG_TXFIFO_WR_REQ bit
