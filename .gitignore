@@ -1,0 +1,9 @@
+rom_tool
+stage2_tool
+
+*.o
+*.map
+*.elf
+*.bin
+*.sym
+*.dump
