@@ -199,24 +199,72 @@ static int mmc_block_readm(u32 src, u32 num, u8 *dst)
 	return 0;
 }
 
+static unsigned int mmc_poll_bit_32(volatile u32 *reg_addr, u32 bit)
+{
+	u32 timeout = 0x00200000;
+	u32 reg;
+
+	do {
+		reg = *reg_addr;
+	} while (!(reg & bit) && --timeout);
+
+	if (timeout == 0)
+		return 1;
+
+	return 0;
+}
+
+static unsigned int mmc_poll_bit_16(volatile u16 *reg_addr, u16 bit)
+{
+	u32 timeout = 0x00200000;
+	u16 reg;
+
+	do {
+		reg = *reg_addr;
+	} while (!(reg & bit) && --timeout);
+
+	if (timeout == 0)
+		return 1;
+
+	return 0;
+}
+
 static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 {
 	u8 *resp;
 	u32 stat, timeout, data, cnt, nob, i, j;
 	u32 *wbuf = (u32 *)dst;
-	volatile u32 wait;
 
+#if 0
+	timeout = 0x001fffff;
+	while (timeout) {
+		timeout--;
+
+		resp = mmc_cmd(13, rca, 0x1, MSC_CMDAT_RESPONSE_R1); // for sdhc card
+
+		if (resp[2] & 0x1)   //wait the card is ready for data
+			break;
+	}
+	if (!timeout)
+	{
+		serial_puts("\n mmc/sd failed to wait for READY_FOR_DATA");
+		return -1;
+	}
+#endif
+
+	// SET_BLOCKLEN
 	resp = mmc_cmd(16, 0x200, 0x1, MSC_CMDAT_RESPONSE_R1);
 	REG_MSC_BLKLEN = 0x200;
 	REG_MSC_NOB = num / 512;
 
+	// WRITE_MULTIPLE_BLOCK
 	if (highcap)
 		resp = mmc_cmd(25, src, 0x19 | (BUS_WIDTH << 9), MSC_CMDAT_RESPONSE_R1); // for sdhc card
 	else
 		resp = mmc_cmd(25, src * 512, 0x19 | (BUS_WIDTH << 9), MSC_CMDAT_RESPONSE_R1);
 	nob = num / 512;
 	for (i = 0; i < nob; i++) { // cycle per pages of 512 bytes
-		timeout = 0x3FF;
+		timeout = 0x2000;
 		while (timeout) {
 			timeout--;
 			stat = REG_MSC_STAT;
@@ -227,35 +275,24 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 				/* Ready to write data */
 				break;
 			}
-			
-			wait = 0xffff;
-			while (wait--)
-				;
 		}
 		if (!timeout)
+		{
+			serial_puts("\n mmc/sd failed to wait for MSC_STAT_DATA_FIFO_FULL");
 			return -1;
+		}
 
 		/* Write data to TXFIFO */
 		cnt = 128; // 128 words = 512 bytes
 		while (cnt) {
 			// we need to wait for MSC_IREG_TXFIFO_WR_REQ bit
 			// set before start new write to FIFO
-			timeout = 0x3FF;
-			while (timeout)
+			stat = mmc_poll_bit_16(&REG_MSC_IREG, MSC_IREG_TXFIFO_WR_REQ);
+			if (stat)
 			{
-				timeout--;
-
-				if (REG_MSC_IREG & MSC_IREG_TXFIFO_WR_REQ)
-					break;
-
-				wait = 336;
-				while (wait--)
-				{
-				}
-			}
-
-			if (!timeout)
+				serial_puts("\n mmc/sd failed to wait for MSC_IREG_TXFIFO_WR_REQ");
 				return -1;
+			}
 
 			// FIFO is 16 words depth
 			for (j=0; j<16; j++)
@@ -265,26 +302,33 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 			}
 		}
 	}
-	serial_puts("    ");
-#if 0	
-	while (!(REG_MSC_IREG & MSC_IREG_DATA_TRAN_DONE)) ;
+
+	if (REG_MSC_STAT & (MSC_STAT_CRC_WRITE_ERROR | MSC_STAT_CRC_WRITE_ERROR_NOSTS))
+	{
+		serial_puts("\n mmc/sd write error");
+		return -1;
+	}
+
+	// wait for MSC_IREG [DATA_TRAN_DONE]
+	stat = mmc_poll_bit_16(&REG_MSC_IREG, MSC_IREG_DATA_TRAN_DONE);
+	if (stat)
+	{
+		serial_puts("\n mmc/sd failed to wait for MSC_IREG_DATA_TRAN_DONE");
+		return -1;
+	}
 	REG_MSC_IREG = MSC_IREG_DATA_TRAN_DONE;	/* clear status */
-	
+
+	// STOP_TRANS
 	resp = mmc_cmd(12, 0, 0x441, MSC_CMDAT_RESPONSE_R1);
-	while (!(REG_MSC_IREG & MSC_IREG_PRG_DONE)) ;
+
+	// wait for MSC_IREG [PRG_DONE]
+	stat = mmc_poll_bit_32(&REG_MSC_STAT, MSC_STAT_PRG_DONE);
+	if (stat)
+	{
+		serial_puts("\n mmc/sd failed to wait for MSC_STAT_PRG_DONE");
+		return -1;
+	}
 	REG_MSC_IREG = MSC_IREG_PRG_DONE;	/* clear status */
-
-#else
-	while (!(REG_MSC_IREG & MSC_IREG_DATA_TRAN_DONE)) ;
-	REG_MSC_IREG = MSC_IREG_DATA_TRAN_DONE;	/* clear status */
-
-	while (!(REG_MSC_STAT & MSC_STAT_PRG_DONE)) ;
-	REG_MSC_IREG = MSC_IREG_PRG_DONE;	/* clear status */
-
-	resp = mmc_cmd(12, 0, 0x441, MSC_CMDAT_RESPONSE_R1);
-	do{
-		resp = mmc_cmd(13, rca, 0x1, MSC_CMDAT_RESPONSE_R1); // for sdhc card
-	}while(!(resp[2] & 0x1));   //wait the card is ready for data
 
 #endif	
 	jz_mmc_stop_clock();
