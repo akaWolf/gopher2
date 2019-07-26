@@ -217,7 +217,10 @@ int sd_card_program(struct ingenic_dev *ingenic_dev, unsigned int addr,
 					       SD_MAX_BLOCK_NUM,
 					       origin_data);
 		if (retval)
+		{
+			printf("\rWrite error!\n");
 			break;
+		}
 
 		/* check */
 		if (check) {
@@ -234,17 +237,10 @@ int sd_card_program(struct ingenic_dev *ingenic_dev, unsigned int addr,
 						      SD_MAX_BLOCK_NUM,
 						      readback_data);
 			if (retval)
+			{
+				printf("\rRead error!\n");
 				break;
-			/* int p; */
-			/* printf("\n origin  : "); */
-			/* for (p = 0; p < 30; p++) */
-			/* 	printf("%02x ", */
-			/* 	       (unsigned char)*(origin_data + p)); */
-			/* printf("\n readback: "); */
-			/* for (p = 0; p < 30; p++) */
-			/* 	printf("%02x ", */
-			/* 	       (unsigned char)*(readback_data + p)); */
-			/* printf("\n"); */
+			}
 
 			if (i + 1 == download_times)
 				retval = memcmp(origin_data, readback_data,
@@ -255,7 +251,7 @@ int sd_card_program(struct ingenic_dev *ingenic_dev, unsigned int addr,
 						SD_MAX_BLOCK_NUM
 						* SD_BLOCK_SIZE);
 			if (retval) {
-				printf("Check error\n");
+				printf("\nCheck error\n");
 				return -1;
 			}
 		}
