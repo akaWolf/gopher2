@@ -235,23 +235,6 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 	u32 stat, timeout, data, cnt, nob, i, j;
 	u32 *wbuf = (u32 *)dst;
 
-#if 0
-	timeout = 0x001fffff;
-	while (timeout) {
-		timeout--;
-
-		resp = mmc_cmd(13, rca, 0x1, MSC_CMDAT_RESPONSE_R1); // for sdhc card
-
-		if (resp[2] & 0x1)   //wait the card is ready for data
-			break;
-	}
-	if (!timeout)
-	{
-		serial_puts("\n mmc/sd failed to wait for READY_FOR_DATA");
-		return -1;
-	}
-#endif
-
 	// SET_BLOCKLEN
 	resp = mmc_cmd(16, 0x200, 0x1, MSC_CMDAT_RESPONSE_R1);
 	REG_MSC_BLKLEN = 0x200;
@@ -330,7 +313,23 @@ static int mmc_block_writem(u32 src, u32 num, u8 *dst)
 	}
 	REG_MSC_IREG = MSC_IREG_PRG_DONE;	/* clear status */
 
-#endif	
+#if 0
+	timeout = 0x002fffff;
+	while (timeout) {
+		timeout--;
+
+		resp = mmc_cmd(13, rca, 0x1, MSC_CMDAT_RESPONSE_R1); // for sdhc card
+
+		if (resp[2] & 0x1)   //wait the card is ready for data
+			break;
+	}
+	if (!timeout)
+	{
+		serial_puts("\n mmc/sd failed to wait for READY_FOR_DATA");
+		return -1;
+	}
+#endif
+
 	jz_mmc_stop_clock();
 	//return src+nob;
 	return 0;
