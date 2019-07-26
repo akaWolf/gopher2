@@ -485,9 +485,9 @@ int SDRAM_OPS_Handle(u8 *buf)
 	return ERR_OK;
 }
 
-void Borad_Init()
+void Board_Init()
 {
-	dprintf("\n Borad_init! ");
+	dprintf("\n Board_Init! ");
 
 
 	//Init nand flash
@@ -533,7 +533,7 @@ int CONFIGRATION_Handle(u8 *buf)
 	default:;
 		
 	}
-	Borad_Init();
+	Board_Init();
 	return ERR_OK;
 }
 
